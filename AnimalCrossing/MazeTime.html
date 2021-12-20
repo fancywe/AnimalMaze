@@ -1,0 +1,499 @@
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Animal Crossing</title>
+    <link rel="stylesheet" type="text/css" href="css/maze.css">
+	<link rel="icon" href="http://png.weweztms.cn/icon.png" type="image/x-icon" />
+</head>
+<body>
+<nav class="navbar">
+    <div class="navbar-content-1">
+       
+    </div>
+    <div class=" container navbar-content">
+        <a>Animal Crossing</a>
+    </div>
+    
+</nav>
+
+<div class="container">
+    <h1>Animal Crossing</h1>
+    <h4>by WE & XY</h4>
+
+    <div class="news-list">
+        <div class="news-list-left">
+            <canvas id="mycanvas" width="640px" height="640px"></canvas>
+
+        </div>
+
+        <div class="news-list-right">
+            <div class="about">
+            	<div class="about-des">
+                    <p id= "lName"><img id="lion" src="./image/lion.png" width="40px" height="40px">: Lion</p>
+                </div>
+            	<div class="about-des">
+                    <p id= "bName"><img id="bear" src="./image/bear.png" width="40px" height="40px">: Bear</p>
+                </div>
+                
+                <div class="about-des">
+                    <span id="mytime"></span>
+                    <button  onclick="start()" >Start</button>
+                    <button onclick="stop()">Stop</button>
+                    <button onclick="acc()">Accelerate</button>
+                    <br>
+                    <div id="showlast" style="margin-top:20px;"></div>
+                </div>
+                <br>
+            </div>
+        </div>
+       
+    </div>
+</div>
+
+<script type="text/javascript">
+
+    var aa=15;
+    var chess = document.getElementById("mycanvas");
+    var context = chess.getContext('2d');
+    var imgb = document.getElementById("bear");
+    var lion = 1;
+    var bear = 1;
+    var img = document.getElementById("lion");
+	var k=0;
+    var tree = [];//存放是否联通
+    var isling=[];//判断是否相连
+    for(var i=0;i<aa;i++){
+        tree[i]=[];
+        for(var j=0;j<aa;j++){
+            tree[i][j]=-1;//初始值为0
+        }
+    }  for(var i=0;i<aa*aa;i++){
+        isling[i]=[];
+        for(var j=0;j<aa*aa;j++){
+            isling[i][j]=-1;//初始值为0
+        }
+    }
+
+    function drawChessBoard(){//绘画
+        for(var i=0;i<aa+1;i++){
+            context.strokeStyle='gray';//可选区域
+            context.moveTo(15+i*40,15);//垂直方向画15根线，相距40px;
+            context.lineTo(15+i*40,15+40*aa);
+            context.stroke();
+            context.moveTo(15,15+i*40);//水平方向画15根线，相距40px;棋盘为14*14；
+            context.lineTo(15+40*aa,15+i*40);
+            context.stroke();
+        }
+    }
+    drawChessBoard();//绘制棋盘
+
+    //      var mymap=new Array(36);
+    //      for(var i=0;i<36;i++)
+    //     {mymap[i]=-1;}
+
+
+
+    function getnei(a)//获得邻居号  random
+    {
+        var x=parseInt(a/aa);//要精确成整数
+        var y=a%aa;
+        var mynei=new Array();//储存邻居
+        if(x-1>=0){mynei.push((x-1)*aa+y);}//上节点
+        if(x+1<14){mynei.push((x+1)*aa+y);}//下节点
+        if(y+1<14){mynei.push(x*aa+y+1);}//有节点
+        if(y-1>=0){mynei.push(x*aa+y-1);}//下节点
+        var ran=parseInt(Math.random() * mynei.length );
+        return mynei[ran];
+
+    }
+    function search(a)//找到根节点
+    {
+        if(tree[parseInt(a/aa)][a%aa]>0)//说明是子节点
+        {
+            return search(tree[parseInt(a/aa)][a%aa]);//不能压缩路径路径压缩
+        }
+        else
+            return a;
+    }
+    function value(a)//找到树的大小
+    {
+        if(tree[parseInt(a/aa)][a%aa]>0)//说明是子节点
+        {
+            return tree[parseInt(a/aa)][a%aa]=value(tree[parseInt(a/aa)][a%aa]);//不能路径压缩
+        }
+        else
+            return -tree[parseInt(a/aa)][a%aa];
+    }
+    function union(a,b)//合并
+    {
+        var a1=search(a);//a根
+        var b1=search(b);//b根
+        if(a1==b1){}
+        else
+        {
+            if(tree[parseInt(a1/aa)][a1%aa]<tree[parseInt(b1/aa)][b1%aa])//这个是负数()，为了简单减少计算，不在调用value函数
+            {
+                tree[parseInt(a1/aa)][a1%aa]+=tree[parseInt(b1/aa)][b1%aa];//个数相加  注意是负数相加
+                tree[parseInt(b1/aa)][b1%aa]=a1;       //b树成为a树的子树，b的根b1直接指向a；
+            }
+            else
+            {
+                tree[parseInt(b1/aa)][b1%aa]+=tree[parseInt(a1/aa)][a1%aa];
+                tree[parseInt(a1/aa)][a1%aa]=b1;//a所在树成为b所在树的子树
+            }
+        }
+    }
+
+    function drawline(a,b)//划线，要判断是上下还是左右
+    {
+
+        var x1=parseInt(a/aa);
+        var y1=a%aa;
+        var x2=parseInt(b/aa);
+        var y2=b%aa;
+        var x3=(x1+x2)/2;
+        var y3=(y1+y2)/2;
+        if(x1-x2==1||x1-x2==-1)//左右方向的点  需要上下划线
+        {
+            //alert(x1);
+            //  context.beginPath();
+            context.strokeStyle = 'white';
+            //    context.moveTo(40+x3*40,y3*40+15);//
+            //   context.lineTo(40+x3*40,y3*40+45);
+            context.clearRect(34+x3*40, y3*40+16,2,38);
+            //    context.stroke();
+        }
+        else
+        {
+            //   context.beginPath();
+            context.strokeStyle = 'white';
+            //  context.moveTo(x3*40+15,40+y3*40);//
+            //    context.lineTo(45+x3*40,40+y3*40);
+            context.clearRect(x3*40+16, 34+y3*40,38,2);
+            //      context.stroke();
+        }
+    }
+
+    while(search(0)!=search(aa*aa-1))//主要思路
+    {
+        var num = parseInt(Math.random() * aa*aa );//产生一个小于196的随机数
+        var neihbour=getnei(num);
+        if(search(num)==search(neihbour)){continue;}
+        else//不在一个上
+        {
+            isling[num][neihbour]=1;isling[neihbour][num]=1;
+            drawline(num,neihbour);//划线
+            union(num,neihbour);
+
+        }
+    }
+    var a=aa*40-10,b=aa*40-10;
+    var x = randomNum(1,15)*40-10, y =randomNum(1,15)*40-10;
+    var x1 = randomNum(1,15)*40-10, y1 =randomNum(1,15)*40-10;
+    function randomNum(minNum,maxNum){
+        switch(arguments.length){
+            case 1:
+                return parseInt(Math.random()*minNum+1,10);
+                break;
+            case 2:
+                return parseInt(Math.random()*(maxNum-minNum+1)+minNum,10);
+                break;
+            default:
+                return 0;
+                break;F
+        }
+    }
+    function load() {
+        var canvas = document.getElementById("mycanvas");
+        Context = canvas.getContext("2d");
+        Context.drawImage(img, x-10, y-10, 30, 30);
+        Context.drawImage(imgb, x1-10, y1-10, 30, 30);
+        canvas.focus();
+        Context.fillStyle = "red";
+        Context.fillRect(a-10, b-10, 30, 30);
+    }
+
+	
+	
+    function move() {
+        if(lion ==1 ){
+        k=Math.ceil(Math.random()*4);
+        //获取按键的Unicode代码值
+		var canvas = document.getElementById("mycanvas");
+		Context = canvas.getContext("2d");
+            if (k ==1) { // W键以及上键的移动方向
+                if(y-40<0){}
+                else if(isling[(x-30)/40*aa+(y-30)/40][((x-30)/40)*aa+(y-30)/40-1]!=1) {}
+                else {
+                    clearCanvas();
+                    y = y - 40;
+                    Context.drawImage(img, x-10, y-10, 30, 30);
+                    /*Context.fillStyle = "pink";
+                    Context.fillRect(x, y, 30, 30);*/
+                    gameover();
+                    show();
+                }
+            }
+            if (k==2) { // D键以及you键的移动方向
+                if(x+40>15+40*aa){}
+                else if(isling[(x-30)/40*aa+(y-30)/40][((x-30)/40)*aa+(y-30)/40+aa]!=1) {}
+                else{
+                    clearCanvas();
+                    x=x+40;
+                    Context.drawImage(img, x-10, y-10, 30, 30);
+                    /*Context.fillStyle = "pink";
+                    Context.fillRect(x, y, 30, 30);*/
+                    gameover();
+                    show();
+                }
+            }
+            if (k == 3) { // S键以及下键的移动方向
+                if(y+40>15+40*aa){}
+                else if(isling[(x-30)/40*aa+(y-30)/40][((x-30)/40)*aa+(y-30)/40+1]!=1) {}
+                else{
+                    clearCanvas();
+                    y = y + 40;
+                    Context.drawImage(img, x-10, y-10, 30, 30);
+                    /*Context.fillStyle = "pink";
+                    Context.fillRect(x, y, 30, 30);*/
+                    gameover();
+                    show();
+                }
+            }
+            if (k==4) { // A键以及zuo向
+                if(x-40<0){}
+                else if(isling[(x-30)/40*aa+(y-30)/40][((x-30)/40)*aa+(y-30)/40-aa]!=1) {}
+                else{
+                    clearCanvas();
+                    x = x - 40;
+                    Context.drawImage(img, x-10, y-10, 30, 30);
+                    /*Context.fillStyle = "pink";
+                    Context.fillRect(x, y, 30, 30);*/
+                    gameover();
+                    show();
+
+                }}}
+        }
+
+        function moveG() {
+        if(bear == 1){
+        k=Math.ceil(Math.random()*4);
+        //获取按键的Unicode代码值
+		var canvas = document.getElementById("mycanvas");
+		Context = canvas.getContext("2d");
+            if (k ==1) { // W键以及上键的移动方向
+                if(y1-40<0){}
+                else if(isling[(x1-30)/40*aa+(y1-30)/40][((x1-30)/40)*aa+(y1-30)/40-1]!=1) {}
+                else {
+                    clearCanvasG();
+                    y1 = y1 - 40;
+                     Context.drawImage(imgb, x1-10, y1-10, 30, 30);
+        /*Context.fillStyle = "green";
+        Context.fillRect(x1, y1, 30, 30);*/
+                    gameover2();
+                    show();
+                }
+            }
+            if (k==2) { // D键以及you键的移动方向
+                if(x1+40>15+40*aa){}
+                else if(isling[(x1-30)/40*aa+(y1-30)/40][((x1-30)/40)*aa+(y1-30)/40+aa]!=1) {}
+                else{
+                    clearCanvasG();
+                    x1=x1+40;
+                     Context.drawImage(imgb, x1-10, y1-10, 30, 30);
+        /*Context.fillStyle = "green";
+        Context.fillRect(x1, y1, 30, 30);*/
+                    gameover2();
+                    show();
+                }
+            }
+            if (k == 3) { // S键以及下键的移动方向
+                if(y1+40>15+40*aa){}
+                else if(isling[(x1-30)/40*aa+(y1-30)/40][((x1-30)/40)*aa+(y1-30)/40+1]!=1) {}
+                else{
+                    clearCanvasG();
+                    y1 = y1 + 40;
+                     Context.drawImage(imgb, x1-10, y1-10, 30, 30);
+        /*Context.fillStyle = "green";
+        Context.fillRect(x1, y1, 30, 30);*/
+                    gameover2();
+                    show();
+                }
+            }
+            if (k==4) { // A键以及zuo向
+                if(x1-40<0){}
+                else if(isling[(x1-30)/40*aa+(y1-30)/40][((x1-30)/40)*aa+(y1-30)/40-aa]!=1) {}
+                else{
+                    clearCanvasG();
+                    x1 = x1 - 40;
+                     Context.drawImage(imgb, x1-10, y1-10, 30, 30);
+        /*Context.fillStyle = "green";
+        Context.fillRect(x1, y1, 30, 30);*/
+                    gameover2();
+                    show();
+
+                }}}
+        }
+    
+    function clearCanvas() {//清除之间的痕迹
+        Context.clearRect(x-12, y-12, 35, 35)
+
+    }
+    function clearCanvasG() {//清除之间的痕迹
+        Context.clearRect(x1-12, y1-12, 35, 35)
+    }
+    var end=false;
+    function gameover()
+    {
+        if(x>=a&&y>=b)
+        {
+            document.getElementById("showlast").innerHTML= "Mr.Lion Escape success！Cost time &nbsp"+str;
+            lion = 0;
+            clearInterval(fuck);
+
+        }
+    }
+	function gameover2()
+	{
+	    if(x1>=a&&y1>=b)
+	    {
+            document.getElementById("showlast").innerHTML= "Mr.Bear Escape success！Cost time &nbsp"+str;
+            bear = 0;
+            clearInterval(green);
+	    }
+	}
+    function show()
+    {
+        if(end==true)
+        {
+            aa=aa+2;
+            if(aa==30){ rangeinsert(); stop();}
+            else{
+                end=false;
+                Context.clearRect(0, 0, 600, 600);
+
+                for(var i=0;i<aa;i++){
+                    tree[i]=[];
+                    for(var j=0;j<aa;j++){
+                        tree[i][j]=-1;//初始值为0
+                    }
+                }  for(var i=0;i<aa*aa;i++){
+                    isling[i]=[];
+                    for(var j=0;j<aa*aa;j++){
+                        isling[i][j]=-1;//初始值为0
+                    }
+                }
+                drawChessBoard();//绘制棋盘
+                while(search(0)!=search(aa*aa-1))//主要思路
+                {
+                    var num = parseInt(Math.random() * aa*aa );//产生一个小于196的随机数
+                    var neihbour=getnei(num);
+                    if(search(num)==search(neihbour)){continue;}
+                    else//不在一个上
+                    {
+                        isling[num][neihbour]=1;isling[neihbour][num]=1;
+                        drawline(num,neihbour);//划线
+                        union(num,neihbour);
+
+                    }
+                }
+                a=aa*40-10,b=aa*40-10;
+                x = 30, y =30;
+
+                load();
+				
+                // start();
+            }
+
+        }
+    }
+    var h=m=s=ms= 0;  //定义时，分，秒，毫秒并初始化为0；
+    var time=0;
+    var i=0;
+	var f=1;
+	var fuck;
+	var green;
+	var title;
+    function timer(){   //定义计时函数
+        ms=ms+50;       //毫秒
+        if(ms>=1000){
+            ms=0;
+            s=s+1;         //秒
+        }
+        if(s>=60){
+            s=0;
+            m=m+1;        //分钟
+        }
+        if(m>=60){
+            m=0;
+            h=h+1;        //小时
+        }
+        str =toDub(h)+" h "+toDub(m)+" min "+toDub(s)+" s ";
+        mytime = document.getElementById('mytime');
+        mytime.innerHTML = str;
+        // document.getElementById('mytime').innerHTML=h+"时"+m+"分"+s+"秒"+ms+"毫秒";
+    }
+
+    function reset(){  //重置
+        i=1;
+        time=setInterval(timer,50);
+    }
+
+    function start(){ 
+    	load(); //开始
+        i=1;
+		time=setInterval(timer,50);
+		 fuck =setInterval(move,1000);
+		 green =setInterval(moveG,1000);
+		 
+    }
+
+    function stop(){  //暂停
+        i=0;
+        clearInterval(time);
+		clearInterval(fuck);
+		clearInterval(green);
+    }
+	
+	function acc(){
+		if(f==1){
+		fuck =setInterval(move,500);	
+		green =setInterval(moveG,500);	
+		f=0;
+		}
+		else{
+			clearInterval(fuck);
+			clearInterval(green);
+			f=1;
+		}
+		}
+		
+    function toDub(n){  //补0操作
+        if(n<10){
+            return "0"+n;
+        }
+        else {
+            return ""+n;
+        }
+    }
+
+    function toDubms(n){  //给毫秒补0操作
+        if(n<10){
+            return "00"+n;
+        }
+        else {
+            return "0"+n;
+        }
+
+    }
+    function renovates(){
+        document.location.reload();
+    }
+
+    
+</script>
+
+
+</body>
+</html>
